@@ -1,0 +1,26 @@
+name: 问题反馈
+description: 报告时区切换、安装或界面问题
+body:
+  - type: markdown
+    attributes:
+      value: 请先确认扩展已重新加载，并刷新目标页。截图和诊断中请遮盖 IP、节点名和个人路径。
+  - type: input
+    id: versions
+    attributes:
+      label: 环境与版本
+      description: Chrome 版本、操作系统、扩展页脚版本、补丁或 CDP 模式
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 重现步骤与预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 目标时区、网页实际读取的时区、诊断中的失败原因；请先脱敏
+    validations:
+      required: true

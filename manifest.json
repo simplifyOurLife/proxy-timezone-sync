@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Proxy Timezone Sync · 代理时区自动切换",
+  "version": "1.1.3",
+  "description": "观测目标网站的网络出口，在选定网页中同步浏览器可见时区；不修改电脑系统时区。",
+  "minimum_chrome_version": "125",
+  "permissions": [
+    "proxy",
+    "storage",
+    "tabs",
+    "scripting",
+    "alarms",
+    "webNavigation",
+    "debugger"
+  ],
+  "optional_permissions": [
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "代理时区自动切换",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_page": "src/options/options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/bridge.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>时区自检页 · Proxy Timezone Sync</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0; padding: 28px;
+      font-family: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+      background: #f5f6f8; color: #16181d; line-height: 1.6;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #16181c; color: #e8eaed; }
+      .card { background: #1e2126 !important; border-color: #313640 !important; }
+      code { background: rgba(138,180,248,.14) !important; }
+      .dim { color: #9aa0a6; }
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #6b7280; font-size: 13px; margin: 0 0 20px; }
+    .card {
+      background: #fff; border: 1px solid #e2e5ea; border-radius: 12px;
+      padding: 16px 18px; max-width: 820px; margin-bottom: 14px;
+    }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    td { padding: 6px 0; vertical-align: top; border-bottom: 1px solid rgba(128,128,128,.16); }
+    td:first-child { width: 300px; color: #6b7280; }
+    code {
+      font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+      background: rgba(26,115,232,.10); padding: 1px 6px; border-radius: 5px; word-break: break-all;
+    }
+    .big { font-size: 15px; font-weight: 700; }
+    .ok { color: #12805c; }
+    .warn { color: #c46a00; }
+    button {
+      border: 1px solid #e2e5ea; background: #fff; color: inherit;
+      border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { border-color: #1a73e8; }
+    pre {
+      background: rgba(128,128,128,.10); border-radius: 8px; padding: 12px;
+      font-size: 12px; overflow: auto; max-height: 320px;
+    }
+  </style>
+</head>
+<body>
+  <h1>时区自检</h1>
+  <p class="sub">
+    检查这个网页看到的时区与日期语义。默认只修改 ChatGPT/OpenAI；测试此页前请配置作用范围。
+    电脑系统时区始终不变，本页不能证明网站的其他检测一定通过。
+  </p>
+
+  <div class="card">
+    <h2>关键信号</h2>
+    <table id="tbl"></table>
+  </div>
+
+  <div class="card">
+    <h2>判定</h2>
+    <div id="verdict" class="big">检测中…</div>
+    <p class="dim" style="font-size:12.5px;margin:10px 0 0">
+      对比弹窗中的浏览器目标时区；安装或切换模式后先刷新本页。
+      如果显示的是系统时区，检查扩展开关、域名作用范围、这个文件是否通过
+      <code>file://</code> 打开的（需要在扩展详情页开启「允许访问文件网址」）、
+      或者换个普通网站再试。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Worker</h2>
+    <button id="workerCheck">检查 Worker 时区</button>
+    <pre id="workerResult">补丁模式不覆盖 Worker；CDP 覆盖情况请实测。</pre>
+  </div>
+
+  <div class="card">
+    <h2>完整报告</h2>
+    <button id="copy">复制报告</button>
+    <pre id="dump">—</pre>
+  </div>
+
+  <script>
+    // 必须同步读取，后续刷新报告不能掩盖网页启动时读到了旧时区的问题。
+    const firstTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    function fmtOffset(tz) {
+      try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz, hour12: false,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).formatToParts(new Date());
+        const m = {};
+        parts.forEach(p => { if (p.type !== 'literal') m[p.type] = p.value; });
+        let h = Number(m.hour); if (h === 24) h = 0;
+        const asUTC = Date.UTC(+m.year, +m.month - 1, +m.day, h, +m.minute, +m.second);
+        const off = Math.round((asUTC - Math.floor(Date.now() / 1000) * 1000) / 60000);
+        const sign = off < 0 ? '-' : '+';
+        return 'GMT' + sign + String(Math.floor(Math.abs(off) / 60)).padStart(2, '0') + ':' +
+               String(Math.abs(off) % 60).padStart(2, '0');
+      } catch (e) { return '(算不出来: ' + e.message + ')'; }
+    }
+
+    function collect() {
+      const r = {};
+      r.firstTimeZone = firstTimeZone;
+      try { r.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { r.timeZone = 'ERR ' + e; }
+      try { r.offset = fmtOffset(r.timeZone); } catch (e) { r.offset = 'ERR'; }
+      try { r.getTimezoneOffset = new Date().getTimezoneOffset(); } catch (e) { r.getTimezoneOffset = 'ERR'; }
+      try { r.toString = new Date().toString(); } catch (e) { r.toString = 'ERR'; }
+      try { r.toTimeString = new Date().toTimeString(); } catch (e) { r.toTimeString = 'ERR'; }
+      try { r.toISOString = new Date().toISOString(); } catch (e) { r.toISOString = 'ERR'; }
+      try { r.toLocaleString = new Date().toLocaleString(); } catch (e) { r.toLocaleString = 'ERR'; }
+      try { r.toLocaleString_enUS = new Date().toLocaleString('en-US'); } catch (e) { r.toLocaleString_enUS = 'ERR'; }
+      try { r.toLocaleTimeString = new Date().toLocaleTimeString('en-US'); } catch (e) { r.toLocaleTimeString = 'ERR'; }
+      try { r.explicitUTC = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC' }).resolvedOptions().timeZone; } catch (e) { r.explicitUTC = 'ERR'; }
+      try {
+        r.intlFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'long' }).format(new Date());
+      } catch (e) { r.intlFormat = 'ERR'; }
+      try {
+        r.timeZoneName = new Intl.DateTimeFormat('en-US', { timeZoneName: 'long' })
+          .formatToParts(new Date()).find(p => p.type === 'timeZoneName').value;
+      } catch (e) { r.timeZoneName = 'ERR'; }
+      try { r.localStringParse = new Date('2024-06-01T12:00:00').toString(); } catch (e) { r.localStringParse = 'ERR'; }
+      try { r.dateOnlyParse = new Date('2024-06-01').toString(); } catch (e) { r.dateOnlyParse = 'ERR'; }
+      try { r.utcParse = new Date('2024-06-01T12:00:00Z').toString(); } catch (e) { r.utcParse = 'ERR'; }
+      try { r.multiArg = new Date(2024, 5, 1, 12, 0, 0).toString(); } catch (e) { r.multiArg = 'ERR'; }
+      try { r.getTimeStable = new Date(Date.now()).getTime() - Date.now(); } catch (e) { r.getTimeStable = 'ERR'; }
+      try { r.utcHours = new Date().getUTCHours(); } catch (e) { r.utcHours = 'ERR'; }
+      try { r.dateIsNative = Date.toString(); } catch (e) { r.dateIsNative = 'ERR'; }
+      try { r.ftos = Date.prototype.getTimezoneOffset.toString(); } catch (e) { r.ftos = 'ERR'; }
+      return r;
+    }
+
+    const LABELS = {
+      firstTimeZone: ['页面首次同步读取的时区', '应与当前目标一致；切换后需要刷新页面'],
+      timeZone: ['Intl.DateTimeFormat().resolvedOptions().timeZone', '最常被检测的一项'],
+      offset: ['当前 UTC 偏移', ''],
+      getTimezoneOffset: ['new Date().getTimezoneOffset()', '东八区应为 -480'],
+      toString: ['new Date().toString()', ''],
+      toTimeString: ['new Date().toTimeString()', ''],
+      toISOString: ['new Date().toISOString()', '必须是真实 UTC 时间'],
+      toLocaleString: ['new Date().toLocaleString()', ''],
+      toLocaleString_enUS: ["new Date().toLocaleString('en-US')", ''],
+      toLocaleTimeString: ["new Date().toLocaleTimeString('en-US')", '应包含时间'],
+      explicitUTC: ['显式指定 UTC 的 resolvedOptions', '必须仍是 UTC'],
+      intlFormat: ['Intl 完整格式', ''],
+      timeZoneName: ['时区长名', ''],
+      localStringParse: ["new Date('2024-06-01T12:00:00')", '应为目标时区的 12:00'],
+      dateOnlyParse: ["new Date('2024-06-01')", '纯日期按 UTC 解析'],
+      utcParse: ["new Date('2024-06-01T12:00:00Z')", '带 Z 的绝对时刻'],
+      multiArg: ['new Date(2024, 5, 1, 12, 0, 0)', '应为目标时区的 12:00'],
+      getTimeStable: ['getTime() 与 Date.now() 的差', '应接近 0，说明时间戳没被改坏'],
+      utcHours: ['getUTCHours()', '必须是真实 UTC 小时'],
+      dateIsNative: ['Date.toString()', '此输出不能证明接口原生或不可检测'],
+      ftos: ['getTimezoneOffset.toString()', '此输出不能证明 Worker 一致']
+    };
+
+    function render() {
+      const r = collect();
+      const tbl = document.getElementById('tbl');
+      tbl.innerHTML = '';
+      for (const key of Object.keys(LABELS)) {
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td');
+        td1.innerHTML = LABELS[key][0] + (LABELS[key][1] ? '<br><span class="dim" style="font-size:11.5px">' + LABELS[key][1] + '</span>' : '');
+        const td2 = document.createElement('td');
+        const code = document.createElement('code');
+        code.textContent = String(r[key]);
+        td2.appendChild(code);
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tbl.appendChild(tr);
+      }
+
+      const sysGuess = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const verdict = document.getElementById('verdict');
+      verdict.textContent = '浏览器报告的时区 = ' + sysGuess + '（' + r.offset + '）';
+      verdict.className = 'big';
+
+      document.getElementById('dump').textContent = JSON.stringify(r, null, 2);
+      return r;
+    }
+
+    render();
+    setInterval(render, 1000);
+
+    document.getElementById('workerCheck').addEventListener('click', () => {
+      const url = URL.createObjectURL(new Blob(["postMessage({timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,offset:new Date().getTimezoneOffset()})"], { type: 'text/javascript' }));
+      const worker = new Worker(url);
+      const finish = value => { clearTimeout(timer); worker.terminate(); URL.revokeObjectURL(url); document.getElementById('workerResult').textContent = JSON.stringify(value, null, 2); };
+      const timer = setTimeout(() => finish({ error: 'Worker 检查超时' }), 5000);
+      worker.onmessage = event => finish({ ...event.data, pageTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+      worker.onerror = event => finish({ error: event.message });
+    });
+
+    document.getElementById('copy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(collect(), null, 2));
+        document.getElementById('copy').textContent = '已复制';
+        setTimeout(() => (document.getElementById('copy').textContent = '复制报告'), 1500);
+      } catch (e) {
+        alert('复制失败：' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>

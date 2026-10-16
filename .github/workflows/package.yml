@@ -1,0 +1,45 @@
+name: 扩展打包
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: 生成扩展发布文件
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: 运行自动检查
+        run: npm test
+      - name: 生成 ZIP 和可选 CRX
+        env:
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+        run: ./tools/package.ps1
+      - name: 保存发布文件
+        uses: actions/upload-artifact@v7
+        with:
+          name: proxy-timezone-sync-${{ github.run_number }}
+          path: |
+            dist/*.zip
+            dist/*.crx
+            dist/SHA256SUMS.txt
+            dist/package-files.json
+          if-no-files-found: error
+          retention-days: 30

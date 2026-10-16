@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>代理时区自动切换</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="dot" id="statusDot"></span>
+      <span class="title">代理时区自动切换</span>
+    </div>
+    <label class="switch" title="总开关">
+      <input type="checkbox" id="enabled" />
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <main id="main">
+    <section class="card hero" id="tzCard">
+      <div class="hero-row">
+        <div>
+          <div class="label">浏览器目标时区</div>
+          <div class="tz" id="targetTz">—</div>
+          <div class="tz-meta" id="targetMeta"></div>
+        </div>
+        <div class="clock" id="targetClock">--:--:--</div>
+      </div>
+      <div class="reason" id="reason"></div>
+      <div class="compare">
+        <div>
+          <span class="label">电脑系统时区（不修改）</span>
+          <span class="mono" id="systemTz">—</span>
+          <span class="mono dim" id="systemClock"></span>
+        </div>
+      </div>
+      <div class="hint" id="applyHint">仅影响选定网页；安装或切换模式后请刷新目标网页。</div>
+    </section>
+
+    <section class="card" id="geoCard">
+      <div class="card-head">
+        <span class="label">探测请求的出口 IP</span>
+        <span class="badge" id="geoBadge">—</span>
+      </div>
+      <div class="row">
+        <span class="flag" id="geoFlag">🏳️</span>
+        <span id="geoPlace">未知</span>
+      </div>
+      <div class="mono dim" id="geoIp"></div>
+      <div class="hint" id="geoHint"></div>
+    </section>
+
+    <div class="actions">
+      <button id="refreshBtn" class="btn primary">立即重新检测</button>
+      <button id="optionsBtn" class="btn">设置</button>
+    </div>
+
+    <details class="card diagnostics" id="diagnostics">
+      <summary>诊断详情 <span class="dim" id="diagnosticCount"></span></summary>
+      <div class="diagnostic-body">
+        <section class="diagnostic-section">
+          <div class="card-head">
+            <span class="label">代理软件识别</span>
+            <span class="badge" id="swBadge">—</span>
+          </div>
+          <div class="sw-name" id="swName">未检测到</div>
+          <div class="hint" id="swNote"></div>
+          <ul class="evidence" id="evidence"></ul>
+          <details id="candidatesWrap" hidden>
+            <summary>其它候选（<span id="candCount">0</span>）</summary>
+            <ul class="evidence" id="candidates"></ul>
+          </details>
+        </section>
+
+        <section class="diagnostic-section" id="portsCard" hidden>
+          <div class="card-head">
+            <span class="label">本机监听端口</span>
+          </div>
+          <div class="ports" id="ports"></div>
+          <ul class="evidence" id="apiInfo"></ul>
+        </section>
+
+        <section class="diagnostic-section" id="geoAttemptsCard" hidden>
+          <div class="card-head"><span class="label">出口与地理接口</span></div>
+          <ul class="evidence" id="geoAttempts"></ul>
+        </section>
+
+        <section class="diagnostic-section err" id="errCard" hidden>
+          <div class="card-head"><span class="label">异常</span></div>
+          <ul class="evidence" id="errors"></ul>
+        </section>
+
+      </div>
+    </details>
+  </main>
+
+  <footer class="foot">
+    <span id="footLeft">—</span>
+    <span id="footRight"></span>
+  </footer>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

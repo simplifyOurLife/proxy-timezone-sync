@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>代理时区自动切换 · 设置</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>代理时区自动切换</h1>
+      <p class="sub">查询目标网站看到的出口 → 定位城市时区 → 同步选定网页。不会修改 Windows 系统时区。</p>
+    </header>
+
+    <section class="panel">
+      <h2>基本</h2>
+      <label class="line">
+        <input type="checkbox" id="enabled" />
+        <span>启用自动切换</span>
+        <em>关闭后恢复网页原生时区；电脑系统时区始终不变</em>
+      </label>
+
+      <label class="line">
+        <input type="checkbox" id="onlyWhenProxied" />
+        <span>只在检测到代理时切换</span>
+        <em>可选。TUN 模式可能识别不到；默认直接跟随出口，不依赖本机端口判断</em>
+      </label>
+
+      <label class="line">
+        <span class="label">检测间隔</span>
+        <input type="number" id="refreshMinutes" min="1" max="120" step="1" class="num" />
+        <span class="unit">分钟</span>
+        <em>代理换节点后最多这么久自动跟上；也可以随时在弹窗里手动刷新</em>
+      </label>
+
+      <label class="line">
+        <input type="checkbox" id="countryFallback" />
+        <span>国家主要城市兜底</span>
+        <em>默认关闭，开启会猜测主要城市。新加坡等已支持的单一时区地区无需开启即可自动切换</em>
+      </label>
+
+      <label class="line">
+        <span class="label">手动指定时区</span>
+        <input type="text" id="manualTimezone" list="tzList" placeholder="留空 = 自动（例如 Asia/Tokyo）" class="text" />
+        <datalist id="tzList"></datalist>
+        <em>填了就优先用它，不再跟随代理出口</em>
+      </label>
+    </section>
+
+    <section class="panel">
+      <h2>生效方式</h2>
+      <div class="radios">
+        <label class="radio">
+          <input type="radio" name="engine" value="shim" />
+          <div>
+            <b>补丁模式（默认）</b>
+            <span>在主世界给 Date / Intl.DateTimeFormat 打补丁。没有提示条、不影响 DevTools。
+              缺点是页面里的 Web Worker 覆盖不到。</span>
+          </div>
+        </label>
+        <label class="radio">
+          <input type="radio" name="engine" value="cdp" />
+          <div>
+            <b>CDP 深度模式</b>
+            <span>用 chrome.debugger + Emulation.setTimezoneOverride 在内核层覆盖，
+              并尝试覆盖关联 Worker、跨进程 iframe；不支持的目标会报告错误。
+              标签页顶部会有「正在调试」提示条；打开 DevTools 会断开接管。</span>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>探测</h2>
+      <label class="line col">
+        <span class="label">目标出口探测地址</span>
+        <input type="url" id="exitProbeUrl" class="text" placeholder="https://chatgpt.com/cdn-cgi/trace" />
+        <em>先查询这个请求看到的出口，再按该 IP 定位。使用 HTTPS；不携带登录凭据。</em>
+      </label>
+      <label class="line">
+        <input type="checkbox" id="allowGenericExit" />
+        <span>目标探测失败时允许公共接口兜底</span>
+        <em>默认关闭。仅当你确认目标网站与公共查询接口走同一出口时开启</em>
+      </label>
+      <label class="line">
+        <input type="checkbox" id="localProbe" />
+        <span>扫描本机端口</span>
+        <em>探测 127.0.0.1 上那些代理软件的默认端口（7890 / 10809 / 9090 …），用来判断你在用哪个客户端</em>
+      </label>
+
+      <label class="line">
+        <span class="label">附加端口</span>
+        <input type="text" id="extraProbePorts" placeholder="例如 12345, 2333" class="text" />
+        <em>你改过默认端口就填这里，逗号或空格分隔</em>
+      </label>
+
+      <label class="line">
+        <input type="checkbox" id="nativeProbe" />
+        <span>启用原生宿主机探测（可选）</span>
+        <em>装好 native-host 后能直接读到进程名和系统代理设置，识别准确度最高</em>
+      </label>
+      <div class="sub-box">
+        <div class="kv"><span>本扩展 ID</span><code id="extId">—</code>
+          <button class="mini" id="copyId">复制</button>
+        </div>
+        <div class="hint">安装方法见仓库里的 <code>native-host/INSTALL.md</code>：
+          先用普通 PowerShell 跑一次 <code>native-host/install.ps1 -ExtensionId &lt;上面的ID&gt;</code>，
+          再回来点下面的按钮授权。</div>
+        <button class="btn slim" id="grantNative">授权 nativeMessaging 权限</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>例外</h2>
+      <label class="line col">
+        <span class="label">修改时区的域名</span>
+        <textarea id="includedDomains" rows="3" placeholder="默认 chatgpt.com 和 openai.com；留空表示全部网站"></textarea>
+        <em>每行一个，包含子域。补丁与 CDP 共用这个范围；保存后刷新目标网页</em>
+      </label>
+      <label class="line col">
+        <span class="label">不修改时区的域名</span>
+        <textarea id="excludedDomains" rows="4" placeholder="每行一个，支持 *.example.com"></textarea>
+        <em>比如内网系统、网银，不想让时区被改就写在这里</em>
+      </label>
+
+      <label class="line">
+        <input type="checkbox" id="showDebug" />
+        <span>输出调试日志</span>
+        <em>打开后 Service Worker 控制台会打印每次检测的细节</em>
+      </label>
+    </section>
+
+    <section class="panel">
+      <h2>自检</h2>
+      <div class="grid">
+        <div class="kv"><span>电脑系统时区（不修改）</span><code id="chkSystem">—</code></div>
+        <div class="kv"><span>浏览器目标时区</span><code id="chkTarget">—</code></div>
+        <div class="kv"><span>出口 IP</span><code id="chkIp">—</code></div>
+        <div class="kv"><span>识别到的软件</span><code id="chkSw">—</code></div>
+        <div class="kv"><span>最后检测</span><code id="chkTime">—</code></div>
+        <div class="kv"><span>应用方式</span><code id="chkEngine">—</code></div>
+      </div>
+      <div class="hint">
+        生效范围是上方选定的网页，不是电脑系统。安装或切换模式后，请刷新目标网页，清除网页缓存的旧值。<br />
+        要验证真实效果，请在选定网页里看：<br />
+        · 打开 <code>test/tz-check.html</code>（需在扩展详情页开启「允许访问文件网址」）<br />
+        · 测试其他网站前，先把它加入“修改时区的域名”<br />
+        · 或在任意网页按 F12，控制台输入
+        <code>Intl.DateTimeFormat().resolvedOptions().timeZone</code>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn primary" id="save">保存</button>
+      <button class="btn" id="refresh">保存并重新检测</button>
+      <button class="btn ghost" id="reset">恢复默认</button>
+      <span class="toast" id="toast"></span>
+    </div>
+  </div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>
