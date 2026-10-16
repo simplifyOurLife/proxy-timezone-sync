@@ -13,7 +13,8 @@
 | debugger | CDP 时区及关联子目标控制 | 用户选 CDP 引擎才接管；关闭或不匹配时恢复 |
 | host_permissions: all_urls | 可配置 HTTPS 探测、本机接口、网页覆盖 | 安装授权较广，默认运行范围仍限目标域名 |
 | nativeMessaging（可选） | 与单独安装的宿主机通信 | 未授权／未安装时不可用；宿主 allowed_origins 限定扩展 ID |
-| GitHub contents: read | CI 和打包检出源码 | 工作流没有提交、推送或 Release 写权限 |
+| GitHub contents: read | CI 检出及检查源码 | CI 不发布或修改仓库 |
+| GitHub contents: write | 打包工作流创建标签／Release 并上传附件 | 只在手动触发或版本标签事件执行，已有 Release 拒绝覆盖 |
 | CRX_PRIVATE_KEY | 维护者签名身份 | 仅打包步骤读取；不暴露给 PR 检查或扩展 |
 
 网页消息不能给网页增加 Chrome 扩展权限。CDP 与补丁的范围在后台和内容脚本共同检查，但浏览器进程共享行为仍存在已说明的边界。功能范围限制不等于缩小 manifest 的安装授权。

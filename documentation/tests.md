@@ -25,4 +25,4 @@ npm test 包含上述自动检查，已有扩展行为 308 项，加发布清单
 
 ## 当前缺口
 
-ZIP／CRX 实际生成及 GitHub 远端运行没有执行验证，不能写成已通过。所有网络路径、Shared Worker 和独立 Service Worker 也没有完整覆盖。CI 工作流已准备，但远端必需检查及 main 分支保护尚未设置。
+本地 ZIP 已实际生成并核验 485 个文件、根目录 manifest、版本和 SHA-256，签名 CRX 尚未生成。远端打包及发布的实际结果以 GitHub Actions 和 Release 附件为准。所有网络路径、Shared Worker 和独立 Service Worker 也没有完整覆盖；main 分支保护尚未设置。

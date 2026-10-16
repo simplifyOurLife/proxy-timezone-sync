@@ -107,6 +107,8 @@ npm test
 
 使用 Node.js 22+ 运行检查，无 npm 依赖。公开仓库和 GitHub Actions 的准备材料见 [GitHub 发布准备](docs/GitHub发布准备.md)；工程与验证索引见 [documentation/architecture.md](documentation/architecture.md)。
 
-Actions 在 main 推送或 PR 时检查代码；手动触发打包或推送版本标签后生成 ZIP，配置固定 CRX_PRIVATE_KEY 后额外生成 CRX。文件先保存为工作流产物，公开 Release 由维护者核验后创建。当前版本为发布候选，安装包需在打包工作流成功后获取。
+Actions 在 main 推送或 PR 时检查代码；手动触发打包或推送版本标签后生成 ZIP。手动打包默认不生成 CRX，需要主动勾选且预先配置固定 CRX_PRIVATE_KEY；标签打包在已配置密钥时额外生成 CRX。发布模式可选只保存产物、创建草稿或正式发布，默认草稿。推送版本标签时会创建正式 Release 并上传附件，已有版本拒绝覆盖。
+
+扩展安装包位于 Releases 的附件中。GitHub Packages 是 npm、容器等包注册表，本项目的 ZIP／CRX 不在该栏目发布。
 
 变更记录见 [CHANGELOG.md](CHANGELOG.md)，贡献说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。项目采用 [MIT 许可证](LICENSE)，允许使用、修改和分发，需保留版权及许可声明。

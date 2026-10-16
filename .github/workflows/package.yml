@@ -2,11 +2,21 @@ name: 扩展打包
 
 on:
   workflow_dispatch:
+    inputs:
+      release_mode:
+        description: 发布方式（仅打包、草稿或正式发布）
+        type: choice
+        options: [none, draft, publish]
+        default: draft
+      include_crx:
+        description: 同时生成 CRX（需预先配置固定签名私钥）
+        type: boolean
+        default: false
   push:
     tags: ['v*']
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   package:
@@ -30,7 +40,7 @@ jobs:
         run: npm test
       - name: 生成 ZIP 和可选 CRX
         env:
-          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+          CRX_PRIVATE_KEY: ${{ (github.event_name == 'push' || inputs.include_crx) && secrets.CRX_PRIVATE_KEY || '' }}
         run: ./tools/package.ps1
       - name: 保存发布文件
         uses: actions/upload-artifact@v7
@@ -43,3 +53,30 @@ jobs:
             dist/package-files.json
           if-no-files-found: error
           retention-days: 30
+      - name: 创建 Release 并上传附件
+        if: github.event_name == 'push' || inputs.release_mode != 'none'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          $version = (Get-Content -LiteralPath 'manifest.json' -Raw | ConvertFrom-Json).version
+          $tag = "v$version"
+          $notes = "docs/releases/$tag.md"
+          if (!(Test-Path -LiteralPath $notes)) { throw "缺少发布说明：$notes" }
+          $assets = @(Get-ChildItem -LiteralPath 'dist' -File | Where-Object {
+            $_.Extension -in '.zip', '.crx' -or $_.Name -in 'SHA256SUMS.txt', 'package-files.json'
+          } | ForEach-Object { $_.FullName })
+          if (!$assets.Count) { throw '没有可发布的附件。' }
+          # 已有版本拒绝覆盖，避免同版本被悄悄替换文件或签名身份。
+          $knownReleasesJson = gh release list --repo $env:GITHUB_REPOSITORY --limit 100 --json tagName
+          if ($LASTEXITCODE -ne 0) { throw '无法核对已有 Release，停止发布。' }
+          $knownReleases = @($knownReleasesJson | ConvertFrom-Json)
+          if ($knownReleases.tagName -contains $tag) { throw "$tag 已存在，请先核对现有版本或升级版本号。" }
+          $releaseArgs = @('release', 'create', $tag) + $assets + @(
+            '--repo', $env:GITHUB_REPOSITORY, '--target', $env:GITHUB_SHA,
+            '--title', "$tag · 代理出口与网页时区同步", '--notes-file', $notes
+          )
+          if ($env:RELEASE_EVENT_NAME -eq 'workflow_dispatch' -and $env:RELEASE_MODE -eq 'draft') { $releaseArgs += '--draft' }
+          gh @releaseArgs
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release 创建失败，请查看 CLI 错误。' }

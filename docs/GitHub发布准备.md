@@ -49,8 +49,11 @@ package.json 已填写真实 repository、homepage 和 bugs 地址，README 已�
 
 - 未配置签名密钥：生成 ZIP、SHA256SUMS.txt 和 package-files.json，日志说明没有生成 CRX。
 - 已配置签名密钥：额外调用 Chrome 生成 CRX3，检查文件头，并加入校验和。
-- 产物保存在 Actions 的 Artifacts 中，保留期配置为 30 天；没有自动创建或公开发布 GitHub Release。
-- 创建 Release 时使用 docs/releases/v1.1.3.md 文案，核对实际文件、校验和及安装结果后再上传附件。
+- 产物保存在 Actions 的 Artifacts 中，保留期配置为 30 天。
+- 手动运行可选 none（仅产物）、draft（草稿，默认）、publish（正式发布）；推送版本标签时正式发布。
+- 手动运行的 include_crx 默认关闭，关闭时即使仓库有签名 Secret 也只生成 ZIP；开启需预先配置固定密钥。标签事件保留已配置密钥时生成 CRX 的行为。
+- 发布步骤使用对应版本文案，上传实际生成的 ZIP、可选 CRX、校验和和清单；已存在的版本拒绝覆盖。
+- Releases 用于扩展下载附件；GitHub Packages 是 npm、容器等包注册表，本项目不向该栏目发布扩展安装包。
 
 首次提交说明：`初始化代理出口时区同步扩展及 GitHub 发布配置`。
 
@@ -79,7 +82,7 @@ CheckOnly 不创建 dist，不读取密钥，不运行 Chrome。实际打包将�
 - [x] 本地 313 项自动检查、485 文件清单、YAML／PowerShell 语法、文档链接及常见敏感模式检查通过；只读复核未发现实质缺陷。
 - [x] 用户创建空仓库并提供 URL，本地已关联 origin。
 - [x] 用户已授权首次提交及推送，仓库级身份为个人身份；提交结果以 Git 历史和远端 main 为准。
-- [ ] 如需要 CRX，由用户配置并备份固定签名密钥。
+- [ ] CRX 暂缓；用户已选择本次只发布 ZIP，不生成或配置签名密钥。
 - [ ] 首次运行远端 Actions，核验实际 ZIP／CRX 文件及解压加载行为。
 - [ ] 用户通知发布后再创建 Release；需要正式分发时另行准备 Chrome 商店材料。
 
