@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Proxy Timezone Sync · 让浏览器时区跟着代理出口走</title>
+<meta name="description" content="Chrome 125+ 的 Manifest V3 扩展。观测目标网站探测请求的出口 IP，定位城市时区，修改选定网页看到的浏览器时区。不修改系统时区。" />
+<meta name="theme-color" content="#07080b" />
+<meta name="color-scheme" content="dark light" />
+<link rel="canonical" href="https://simplifyourlife.github.io/proxy-timezone-sync/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Proxy Timezone Sync · 让浏览器时区跟着代理出口走" />
+<meta property="og:description" content="观测目标网站探测请求的出口 IP，定位城市时区，修改选定网页看到的浏览器时区。不修改系统时区。" />
+<meta property="og:url" content="https://simplifyourlife.github.io/proxy-timezone-sync/" />
+<meta property="og:image" content="images/popup.png" />
+<link rel="icon" href="images/icon.png" />
+<link rel="stylesheet" href="assets/site.css" />
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要内容</a>
+
+<header class="nav">
+  <div class="wrap nav__inner">
+    <a class="brand" href="#top">
+      <img class="brand__mark" src="images/icon.png" alt="" width="28" height="28" />
+      <span class="brand__text">Proxy Timezone Sync</span>
+    </a>
+    <nav class="nav__links" aria-label="页面导航">
+      <a href="#how">原理</a>
+      <a href="#features">功能</a>
+      <a href="#verify">验证</a>
+      <a href="#install">安装</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+    <a class="btn btn--primary btn--sm" id="dl-nav" href="https://github.com/simplifyOurLife/proxy-timezone-sync/releases/latest">下载扩展</a>
+  </div>
+</header>
+
+<main id="main">
+  <span id="top"></span>
+
+  <section class="hero">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow">Chrome 125+ · Manifest V3 · 全部本地运行</p>
+        <h1 class="hero__title">让浏览器时区<br />跟着代理出口走</h1>
+        <p class="hero__lead">观测目标网站的探测请求出口，定位到城市时区，再把选定网页看到的时区切过去。换节点后重新检测即可跟上。</p>
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="https://github.com/simplifyOurLife/proxy-timezone-sync/releases/latest">下载扩展</a>
+          <a class="btn btn--ghost" href="#how">看它怎么工作</a>
+        </div>
+      </div>
+      <figure class="hero__visual">
+        <div class="shot">
+          <img src="images/popup.png" alt="扩展弹窗：目标时区显示 Asia/Singapore，出口 IP 为 203.0.113.9，系统时区保持 Asia/Shanghai" width="390" height="700" />
+        </div>
+        <figcaption>弹窗示例。图中 IP 为文档测试地址，不代表任何实际用户出口。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="工程数据">
+    <div class="wrap stats__row">
+      <div class="stat"><span class="stat__num">313</span><span class="stat__label">项自动检查</span></div>
+      <div class="stat"><span class="stat__num">456</span><span class="stat__label">份时区种子</span></div>
+      <div class="stat"><span class="stat__num">16</span><span class="stat__label">款客户端指纹</span></div>
+      <div class="stat"><span class="stat__num">0</span><span class="stat__label">上报与远程代码</span></div>
+    </div>
+  </section>
+
+  <section id="how" class="sect flow">
+    <div class="wrap">
+      <h2 class="h2">它怎么确定你的出口</h2>
+      <p class="lead">整条链路只做一件事：把「这次探测请求的出口」变成「网页看到的时区」。每一步的结果都能在诊断里看到。</p>
+      <ol class="flow__list">
+        <li class="flow__node">
+          <h3 class="h3">探测目标出口</h3>
+          <p>先请求目标站点的 trace 端点，取回它看到的那次请求的 IP。</p>
+          <p class="chip">chatgpt.com/cdn-cgi/trace</p>
+        </li>
+        <li class="flow__node">
+          <h3 class="h3">按 IP 查地理</h3>
+          <p>用观测到的 IP 去查地理接口，并且要求接口返回同一个 IP，否则继续换下一个。</p>
+          <p class="chip">ipwho.is/&lt;IP&gt;</p>
+        </li>
+        <li class="flow__node">
+          <h3 class="h3">确定目标时区</h3>
+          <p>优先取接口给的时区；只有国家时，对已核实的单一时区地区自动映射。多时区国家不猜城市。</p>
+          <p class="chip">IANA tzdb</p>
+        </li>
+        <li class="flow__node">
+          <h3 class="h3">应用到网页</h3>
+          <p>在作用范围内的网页里写入时区，任务栏时钟与其他软件完全不受影响。</p>
+          <p class="chip">Date / Intl</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="features" class="sect bento">
+    <div class="wrap">
+      <h2 class="h2">功能</h2>
+      <div class="bento__grid">
+        <article class="cell cell--a">
+          <h3 class="h3">出口即目标</h3>
+          <p>代理按路径、IPv4／IPv6、进程或时间分别选节点时，其他请求的出口可能和这次探测不同。扩展确认的是该域名本次探测请求的出口，并把它写进诊断。</p>
+          <pre class="code"><code>IP: 203.0.113.9
+loc: SG        <span class="c-dim">国家代码来自目标 trace</span>
+timezone: Asia/Singapore</code></pre>
+        </article>
+
+        <article class="cell cell--b">
+          <h3 class="h3">单一时区地区自动映射</h3>
+          <p>接口只返回国家时，这些地区可以确定时区，无需开启主要城市兜底。</p>
+          <ul class="tags">
+            <li>新加坡</li><li>日本</li><li>中国香港</li><li>中国澳门</li>
+            <li>中国台湾</li><li>韩国</li><li>泰国</li><li>菲律宾</li>
+          </ul>
+        </article>
+
+        <article class="cell cell--c">
+          <h3 class="h3">两种生效引擎</h3>
+          <div class="engine">
+            <p><b>补丁模式</b>在 document_start 注入时区适配器，页面无感知，不出现调试提示条。</p>
+            <p><b>CDP 模式</b>用调试协议在内核层覆盖时区，覆盖更彻底，换来接管的标签页顶部提示条。</p>
+          </div>
+        </article>
+
+        <article class="cell cell--d">
+          <h3 class="h3">按域名收放</h3>
+          <p>默认只改 <code>chatgpt.com</code>、<code>openai.com</code> 及其子域。加入「修改时区的域名」才会作用于其他站点，也可以排除指定域名。</p>
+        </article>
+
+        <article class="cell cell--e">
+          <h3 class="h3">不碰系统时区</h3>
+          <p>Windows、macOS、Linux 的系统时区不被修改。任务栏时钟、其他软件、Chrome 内部页面和扩展设置页仍是系统时区。</p>
+        </article>
+
+        <article class="cell cell--f">
+          <h3 class="h3">诊断默认折叠</h3>
+          <p>出口来源、每个地理接口的结果、本机端口与进程线索、异常原因都在弹窗的折叠区里，展开才有，不干扰日常使用。</p>
+          <div class="fold" aria-hidden="true">
+            <span>诊断详情</span>
+            <span class="fold__caret"></span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="verify" class="sect verify">
+    <div class="wrap verify__grid">
+      <div class="verify__copy">
+        <h2 class="h2">自己验证，别信截图</h2>
+        <p class="lead">在作用范围内的普通网页打开控制台，这四行就能说明问题。</p>
+        <ul class="checklist">
+          <li>时区标识变成代理出口的城市时区</li>
+          <li>偏移量跟着目标时区走</li>
+          <li>时间戳没有被改动，仍接近 0</li>
+          <li>显式指定 UTC 的格式化器不受影响</li>
+        </ul>
+        <p class="note">时区切换不承诺解决网站风控，也不能保证消除所有报错。它只负责让你看到的时区与出口地区一致。</p>
+      </div>
+      <div class="verify__panel">
+        <div class="panel__bar"><span>控制台</span><button class="copy" type="button" data-copy-target="#verify-code">复制</button></div>
+        <pre class="code code--tall" id="verify-code"><code>Intl.DateTimeFormat().resolvedOptions().timeZone
+<span class="c-dim">// Asia/Singapore</span>
+
+new Date().getTimezoneOffset()
+<span class="c-dim">// -480</span>
+
+new Date(Date.now()).getTime() - Date.now()
+<span class="c-dim">// 接近 0</span>
+
+new Intl.DateTimeFormat('en-US', { timeZone: 'UTC' })
+  .resolvedOptions().timeZone
+<span class="c-dim">// UTC</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="clients" class="sect clients">
+    <div class="wrap">
+      <h2 class="h2">本机客户端识别</h2>
+      <p class="lead">这部分是辅助诊断。端口、进程名与代理配置只作为线索，帮助你判断当前在用什么客户端，不参与时区的最终判定。</p>
+      <ul class="clients__list">
+        <li>Clash Verge / Clash Verge Rev</li>
+        <li>Clash / Clash for Windows / ClashX</li>
+        <li>Mihomo (Clash.Meta 内核)</li>
+        <li>V2rayN（含 Xray 内核）</li>
+        <li>V2Ray Core</li>
+        <li>Xray-core</li>
+        <li>sing-box（含 NekoRay / NekoBox 内核）</li>
+        <li>Shadowsocks / Shadowsocks-windows</li>
+        <li>ShadowsocksR / SSR</li>
+        <li>Surge（macOS / iOS）</li>
+        <li>Quantumult X / Shadowrocket（苹果端）</li>
+        <li>Netch</li>
+        <li>Hiddify / Hiddify-Next</li>
+        <li>Proxifier / 透明代理（TUN 模式）</li>
+        <li>Tor / Privoxy</li>
+        <li>抓包代理（Fiddler / Charles / Burp Suite）</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="install" class="sect install">
+    <div class="wrap">
+      <h2 class="h2">安装</h2>
+      <ol class="steps">
+        <li class="step">
+          <h3 class="h3">拿到扩展</h3>
+          <p>从 Releases 下载 ZIP 解压，或者克隆仓库后直接加载目录。</p>
+          <div class="copyline">
+            <code id="clone-cmd">git clone https://github.com/simplifyOurLife/proxy-timezone-sync.git</code>
+            <button class="copy" type="button" data-copy-target="#clone-cmd">复制</button>
+          </div>
+        </li>
+        <li class="step">
+          <h3 class="h3">加载到 Chrome</h3>
+          <p>打开 <code>chrome://extensions/</code>，开启右上角的开发者模式，选择「加载已解压的扩展程序」，指向仓库目录或解压后的目录。</p>
+          <p class="note">无需安装依赖，也没有构建步骤。</p>
+        </li>
+        <li class="step">
+          <h3 class="h3">确认范围并检测</h3>
+          <p>点弹窗里的「立即重新检测」，查看目标时区、出口来源和异常提示。升级已有安装时，点扩展的「重新加载」，然后刷新目标网页。</p>
+        </li>
+      </ol>
+      <p class="callout">作用范围默认只有 <code>chatgpt.com</code> 与 <code>openai.com</code>。要让其他站点也生效，把它们加进设置里的「修改时区的域名」；留空表示全部 HTTP(S) 网站。</p>
+    </div>
+  </section>
+
+  <section id="faq" class="sect faq">
+    <div class="wrap">
+      <h2 class="h2">常见问题</h2>
+      <div class="faq__list">
+        <details>
+          <summary>会修改系统时区吗</summary>
+          <p>不会。任务栏时钟、其他软件、Chrome 内部页面和扩展设置页仍然是系统时区，只有作用范围内的网页会被改写。</p>
+        </details>
+        <details>
+          <summary>切到新加坡后，钟面时间怎么没变</summary>
+          <p>新加坡和上海目前同为 UTC+8，切换成功后钟面时间本来就相同。请用目标网页控制台里的 <code>Intl.DateTimeFormat().resolvedOptions().timeZone</code> 检查时区标识。</p>
+        </details>
+        <details>
+          <summary>为什么默认只作用于 chatgpt.com</summary>
+          <p>不同域名可能被代理规则分流到不同节点，出口并不通用。默认范围的意图是先把一个确定的目标做对，需要扩大时由你自己决定。</p>
+        </details>
+        <details>
+          <summary>本地端口识别不准怎么办</summary>
+          <p>端口探测只是辅助诊断，而且很容易被环境影响。TUN 模式、安全软件接管本地连接、自定义端口都会让它失准，此时应改为查看诊断里的出口来源，或安装可选的原生宿主机读取进程名。</p>
+        </details>
+        <details>
+          <summary>补丁模式会被网站检测出来吗</summary>
+          <p>可以。JS 适配器能被针对性识别，本项目不承诺「不可检测」。需要更彻底的覆盖时用 CDP 模式，代价是标签页顶部的调试提示条。</p>
+        </details>
+        <details>
+          <summary>会上传我的数据吗</summary>
+          <p>没有统计、账号上报、远程代码或远程配置。地理查询会把观测到的出口 IP 显式发送给第三方地理服务，请求不携带 Cookie 和登录凭据，结果只保存在本地。完整说明见仓库里的 PRIVACY.md。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="wrap cta__inner">
+      <div>
+        <h2 class="h2 h2--tight">把时区交给出口地区</h2>
+        <p class="lead lead--tight">从 Releases 下载，或者克隆仓库加载目录。MIT 许可，源码全开。</p>
+      </div>
+      <a class="btn btn--primary" href="https://github.com/simplifyOurLife/proxy-timezone-sync/releases/latest">下载扩展</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__inner">
+    <div class="foot__brand">
+      <img src="images/icon.png" alt="" width="22" height="22" />
+      <span>Proxy Timezone Sync <span class="foot__ver">v1.1.3</span></span>
+    </div>
+    <nav class="foot__links" aria-label="相关链接">
+      <a href="https://github.com/simplifyOurLife/proxy-timezone-sync">仓库</a>
+      <a href="https://github.com/simplifyOurLife/proxy-timezone-sync/blob/main/INSTALL.md">安装说明</a>
+      <a href="https://github.com/simplifyOurLife/proxy-timezone-sync/blob/main/PRIVACY.md">隐私说明</a>
+      <a href="https://github.com/simplifyOurLife/proxy-timezone-sync/blob/main/LICENSE">MIT 许可</a>
+      <a href="https://github.com/simplifyOurLife/proxy-timezone-sync/issues">问题反馈</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

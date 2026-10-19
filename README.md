@@ -1,6 +1,6 @@
 # Proxy Timezone Sync · 浏览器时区自动切换
 
-[GitHub 仓库](https://github.com/simplifyOurLife/proxy-timezone-sync) · [版本发布](https://github.com/simplifyOurLife/proxy-timezone-sync/releases) · [问题反馈](https://github.com/simplifyOurLife/proxy-timezone-sync/issues)
+[项目主页](https://simplifyourlife.github.io/proxy-timezone-sync/) · [GitHub 仓库](https://github.com/simplifyOurLife/proxy-timezone-sync) · [版本发布](https://github.com/simplifyOurLife/proxy-timezone-sync/releases) · [问题反馈](https://github.com/simplifyOurLife/proxy-timezone-sync/issues)
 
 Chrome 125+ 的 Manifest V3 扩展：观测目标网站探测请求的出口 IP，定位城市时区，并修改选定网页看到的浏览器时区。
 
