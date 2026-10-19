@@ -28,6 +28,8 @@
   --on-accent: #ffffff;
   --code-bg: #0a0c11;
   --ok: #3fbf8f;
+  --nav-bg: rgba(7, 8, 11, .82);
+  --nav-bg-mix: rgba(7, 8, 11, .82);
 
   --r-panel: 16px;
   --r-media: 12px;
@@ -60,6 +62,8 @@
     --accent-0: rgba(26, 102, 232, 0);
     --code-bg: #f1f3f7;
     --ok: #12805c;
+    --nav-bg: rgba(245, 246, 248, .86);
+    --nav-bg-mix: rgba(245, 246, 248, .86);
     --shadow: 0 20px 50px rgba(15, 22, 40, .14);
   }
 }
@@ -177,7 +181,9 @@ code, pre { font-family: var(--font-mono); }
 .nav {
   position: sticky; top: 0; z-index: 20;
   height: 64px;
-  background: color-mix(in srgb, var(--ink) 82%, transparent);
+  background: var(--nav-bg);
+  background: color-mix(in srgb, var(--ink) 84%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
   backdrop-filter: blur(14px) saturate(150%);
   border-bottom: 1px solid var(--line);
 }
